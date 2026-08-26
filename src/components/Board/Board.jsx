@@ -15,7 +15,7 @@ const columns = [
   },
 ];
 
-function Board({ tasks }) {
+function Board({ tasks, onUpdateTask, onDeleteTask }) {
   return (
     <main className="board">
       {columns.map((column) => {
@@ -28,6 +28,8 @@ function Board({ tasks }) {
             key={column.id}
             title={column.title}
             tasks={columnTasks}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
           />
         );
       })}
