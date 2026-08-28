@@ -1,18 +1,43 @@
+
 const API_URL = "http://localhost:5000/api";
 
 const request = async (endpoint, options = {}) => {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
+  let response;
 
-  const data = await response.json();
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    const networkError = new Error(
+      "Unable to connect to the server"
+    );
+
+    networkError.isNetworkError = true;
+
+    throw networkError;
+  }
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    const apiError = new Error(
+      data.message || "Something went wrong"
+    );
+
+    apiError.status = response.status;
+
+    throw apiError;
   }
 
   return data;
@@ -58,7 +83,11 @@ export const createTask = async (token, taskData) => {
   });
 };
 
-export const updateTask = async (token, taskId, taskData) => {
+export const updateTask = async (
+  token,
+  taskId,
+  taskData
+) => {
   return request(`/tasks/${taskId}`, {
     method: "PUT",
     headers: {
