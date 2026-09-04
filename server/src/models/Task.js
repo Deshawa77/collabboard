@@ -43,6 +43,13 @@ const taskSchema = new mongoose.Schema(
   }
 );
 
+// Optimize the main task query:
+// find tasks belonging to a user and sort them by newest first.
+taskSchema.index({
+  createdBy: 1,
+  createdAt: -1,
+});
+
 const Task = mongoose.model("Task", taskSchema);
 
 export default Task;
