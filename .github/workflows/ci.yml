@@ -30,7 +30,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-        
+
+      - name: Use npm 11.6.2
+        run: npm install --global npm@11.6.2
+
+      - name: Verify Node and npm versions
+        run: |
+          node --version
+          npm --version
 
       - name: Install client dependencies
         run: npm ci
