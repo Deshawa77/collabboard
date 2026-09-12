@@ -58,7 +58,14 @@ export const createTask = async (req, res) => {
       assignee,
     } = req.body;
 
-    if (!title || !title.trim()) {
+    // Validate title type before using string methods.
+    if (typeof title !== "string") {
+      return res.status(400).json({
+        message: "Task title must be a string",
+      });
+    }
+
+    if (!title.trim()) {
       return res.status(400).json({
         message: "Task title is required",
       });
@@ -67,13 +74,19 @@ export const createTask = async (req, res) => {
     const validStatuses = ["todo", "doing", "done"];
     const validPriorities = ["low", "medium", "high"];
 
-    if (status !== undefined && !validStatuses.includes(status)) {
+    if (
+      status !== undefined &&
+      !validStatuses.includes(status)
+    ) {
       return res.status(400).json({
         message: "Invalid task status",
       });
     }
 
-    if (priority !== undefined && !validPriorities.includes(priority)) {
+    if (
+      priority !== undefined &&
+      !validPriorities.includes(priority)
+    ) {
       return res.status(400).json({
         message: "Invalid task priority",
       });
@@ -81,21 +94,29 @@ export const createTask = async (req, res) => {
 
     const task = await Task.create({
       title: title.trim(),
-      description: description?.trim() || "",
+      description:
+        typeof description === "string"
+          ? description.trim()
+          : "",
       status,
       priority,
-      assignee: assignee?.trim() || "",
+      assignee:
+        typeof assignee === "string"
+          ? assignee.trim()
+          : "",
       createdBy: req.user._id,
     });
 
     return res.status(201).json(task);
-    } catch (error) {
+  } catch (error) {
     console.error("Create task error:", error);
 
     if (error.name === "ValidationError") {
       return res.status(400).json({
         message: "Invalid task data",
-        errors: Object.values(error.errors).map((err) => err.message),
+        errors: Object.values(error.errors).map(
+          (err) => err.message
+        ),
       });
     }
 
@@ -137,19 +158,31 @@ export const updateTask = async (req, res) => {
     const validStatuses = ["todo", "doing", "done"];
     const validPriorities = ["low", "medium", "high"];
 
-    if (status !== undefined && !validStatuses.includes(status)) {
+    if (
+      status !== undefined &&
+      !validStatuses.includes(status)
+    ) {
       return res.status(400).json({
         message: "Invalid task status",
       });
     }
 
-    if (priority !== undefined && !validPriorities.includes(priority)) {
+    if (
+      priority !== undefined &&
+      !validPriorities.includes(priority)
+    ) {
       return res.status(400).json({
         message: "Invalid task priority",
       });
     }
 
     if (title !== undefined) {
+      if (typeof title !== "string") {
+        return res.status(400).json({
+          message: "Task title must be a string",
+        });
+      }
+
       if (!title.trim()) {
         return res.status(400).json({
           message: "Task title cannot be empty",
@@ -160,6 +193,12 @@ export const updateTask = async (req, res) => {
     }
 
     if (description !== undefined) {
+      if (typeof description !== "string") {
+        return res.status(400).json({
+          message: "Task description must be a string",
+        });
+      }
+
       task.description = description.trim();
     }
 
@@ -172,19 +211,27 @@ export const updateTask = async (req, res) => {
     }
 
     if (assignee !== undefined) {
+      if (typeof assignee !== "string") {
+        return res.status(400).json({
+          message: "Task assignee must be a string",
+        });
+      }
+
       task.assignee = assignee.trim();
     }
 
     await task.save();
 
     return res.status(200).json(task);
-    } catch (error) {
+  } catch (error) {
     console.error("Update task error:", error);
 
     if (error.name === "ValidationError") {
       return res.status(400).json({
         message: "Invalid task data",
-        errors: Object.values(error.errors).map((err) => err.message),
+        errors: Object.values(error.errors).map(
+          (err) => err.message
+        ),
       });
     }
 

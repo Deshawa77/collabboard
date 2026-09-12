@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
-import {
+﻿import {
   getCachedTasks,
   saveCachedTasks,
   clearCachedTasks,
@@ -10,47 +9,26 @@ describe("taskCache", () => {
     localStorage.clear();
   });
 
-  test("saves and retrieves tasks for a specific user", () => {
-    const userId = "user-123";
-
+  test("saves and retrieves tasks for a user", () => {
     const tasks = [
-      {
-        _id: "task-1",
-        title: "Test task",
-        status: "todo",
-      },
+      { id: "1", title: "Task 1" },
+      { id: "2", title: "Task 2" },
     ];
 
-    saveCachedTasks(userId, tasks);
+    saveCachedTasks("user1", tasks);
 
-    expect(getCachedTasks(userId)).toEqual(tasks);
+    expect(getCachedTasks("user1")).toEqual(tasks);
   });
 
   test("keeps cached tasks separate between users", () => {
-    const userA = "user-a";
-    const userB = "user-b";
+    const user1Tasks = [{ id: "1", title: "User 1 task" }];
+    const user2Tasks = [{ id: "2", title: "User 2 task" }];
 
-    const tasksA = [
-      {
-        _id: "task-a",
-        title: "User A task",
-        status: "todo",
-      },
-    ];
+    saveCachedTasks("user1", user1Tasks);
+    saveCachedTasks("user2", user2Tasks);
 
-    const tasksB = [
-      {
-        _id: "task-b",
-        title: "User B task",
-        status: "done",
-      },
-    ];
-
-    saveCachedTasks(userA, tasksA);
-    saveCachedTasks(userB, tasksB);
-
-    expect(getCachedTasks(userA)).toEqual(tasksA);
-    expect(getCachedTasks(userB)).toEqual(tasksB);
+    expect(getCachedTasks("user1")).toEqual(user1Tasks);
+    expect(getCachedTasks("user2")).toEqual(user2Tasks);
   });
 
   test("returns an empty array when no cache exists", () => {
@@ -58,29 +36,15 @@ describe("taskCache", () => {
   });
 
   test("clears only the specified user's cache", () => {
-    const userA = "user-a";
-    const userB = "user-b";
+    const user1Tasks = [{ id: "1", title: "User 1 task" }];
+    const user2Tasks = [{ id: "2", title: "User 2 task" }];
 
-    const tasksA = [
-      {
-        _id: "task-a",
-        title: "User A task",
-      },
-    ];
+    saveCachedTasks("user1", user1Tasks);
+    saveCachedTasks("user2", user2Tasks);
 
-    const tasksB = [
-      {
-        _id: "task-b",
-        title: "User B task",
-      },
-    ];
+    clearCachedTasks("user1");
 
-    saveCachedTasks(userA, tasksA);
-    saveCachedTasks(userB, tasksB);
-
-    clearCachedTasks(userA);
-
-    expect(getCachedTasks(userA)).toEqual([]);
-    expect(getCachedTasks(userB)).toEqual(tasksB);
+    expect(getCachedTasks("user1")).toEqual([]);
+    expect(getCachedTasks("user2")).toEqual(user2Tasks);
   });
 });
