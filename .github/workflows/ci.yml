@@ -21,6 +21,7 @@ jobs:
 
     env:
       MONGO_URI: mongodb://127.0.0.1:27017/collabboard_test
+      JWT_SECRET: ci-test-secret-do-not-use-in-production
 
     steps:
       - name: Checkout
