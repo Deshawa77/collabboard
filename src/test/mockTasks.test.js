@@ -1,10 +1,7 @@
-import { describe, expect, test } from "vitest";
-import mockTasks from "../data/mockTasks";
+﻿import mockTasks from "../data/mockTasks";
 
 describe("mockTasks", () => {
-  test("contains tasks with the required fields", () => {
-    expect(mockTasks.length).toBeGreaterThan(0);
-
+  test("contains required task fields", () => {
     mockTasks.forEach((task) => {
       expect(task).toHaveProperty("id");
       expect(task).toHaveProperty("title");
@@ -15,7 +12,7 @@ describe("mockTasks", () => {
     });
   });
 
-  test("uses valid task statuses", () => {
+  test("contains only valid task statuses", () => {
     const validStatuses = ["todo", "doing", "done"];
 
     mockTasks.forEach((task) => {
@@ -23,7 +20,7 @@ describe("mockTasks", () => {
     });
   });
 
-  test("uses valid priority levels", () => {
+  test("contains only valid task priorities", () => {
     const validPriorities = ["low", "medium", "high"];
 
     mockTasks.forEach((task) => {
@@ -31,10 +28,9 @@ describe("mockTasks", () => {
     });
   });
 
-  test("has unique task IDs", () => {
+  test("contains unique task IDs", () => {
     const ids = mockTasks.map((task) => task.id);
-    const uniqueIds = new Set(ids);
 
-    expect(uniqueIds.size).toBe(ids.length);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
