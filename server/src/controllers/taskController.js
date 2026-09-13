@@ -1,6 +1,16 @@
 import mongoose from "mongoose";
 import Task from "../models/Task.js";
 
+const emitTaskEvent = (req, event, task) => {
+  const io = req.app.locals.io;
+
+  if (!io) {
+    return;
+  }
+
+  io.to(`user:${req.user._id}`).emit(event, task);
+};
+
 export const getTasks = async (req, res) => {
   try {
     const tasks = await Task.find({
@@ -107,6 +117,8 @@ export const createTask = async (req, res) => {
       createdBy: req.user._id,
     });
 
+    emitTaskEvent(req, "task:created", task);
+
     return res.status(201).json(task);
   } catch (error) {
     console.error("Create task error:", error);
@@ -136,24 +148,25 @@ export const updateTask = async (req, res) => {
       });
     }
 
-    const task = await Task.findOne({
-      _id: id,
-      createdBy: req.user._id,
-    });
-
-    if (!task) {
-      return res.status(404).json({
-        message: "Task not found",
-      });
-    }
-
     const {
       title,
       description,
       status,
       priority,
       assignee,
+      expectedVersion,
     } = req.body;
+
+    // The client must provide the version it last saw.
+    if (
+      expectedVersion === undefined ||
+      !Number.isInteger(expectedVersion) ||
+      expectedVersion < 0
+    ) {
+      return res.status(400).json({
+        message: "A valid expectedVersion is required",
+      });
+    }
 
     const validStatuses = ["todo", "doing", "done"];
     const validPriorities = ["low", "medium", "high"];
@@ -188,8 +201,6 @@ export const updateTask = async (req, res) => {
           message: "Task title cannot be empty",
         });
       }
-
-      task.title = title.trim();
     }
 
     if (description !== undefined) {
@@ -198,16 +209,6 @@ export const updateTask = async (req, res) => {
           message: "Task description must be a string",
         });
       }
-
-      task.description = description.trim();
-    }
-
-    if (status !== undefined) {
-      task.status = status;
-    }
-
-    if (priority !== undefined) {
-      task.priority = priority;
     }
 
     if (assignee !== undefined) {
@@ -216,13 +217,82 @@ export const updateTask = async (req, res) => {
           message: "Task assignee must be a string",
         });
       }
-
-      task.assignee = assignee.trim();
     }
 
-    await task.save();
+    // Build only the fields that were actually supplied.
+    const updateFields = {};
 
-    return res.status(200).json(task);
+    if (title !== undefined) {
+      updateFields.title = title.trim();
+    }
+
+    if (description !== undefined) {
+      updateFields.description = description.trim();
+    }
+
+    if (status !== undefined) {
+      updateFields.status = status;
+    }
+
+    if (priority !== undefined) {
+      updateFields.priority = priority;
+    }
+
+    if (assignee !== undefined) {
+      updateFields.assignee = assignee.trim();
+    }
+
+    // Atomically update only when the version still matches.
+    //
+    // This prevents two simultaneous requests from both successfully
+    // overwriting the same task.
+    const updatedTask = await Task.findOneAndUpdate(
+      {
+        _id: id,
+        createdBy: req.user._id,
+        version: expectedVersion,
+      },
+      {
+        $set: updateFields,
+        $inc: {
+          version: 1,
+        },
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      }
+    );
+
+    if (updatedTask) {
+      emitTaskEvent(
+        req,
+        "task:updated",
+        updatedTask
+      );
+
+      return res.status(200).json(updatedTask);
+    }
+
+    // The update failed. Determine whether the task exists
+    // so we can distinguish "not found" from a concurrency conflict.
+    const currentTask = await Task.findOne({
+      _id: id,
+      createdBy: req.user._id,
+    });
+
+    if (!currentTask) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    return res.status(409).json({
+      message:
+        "Task was updated by another user. Please review the latest version before making changes.",
+      conflict: true,
+      task: currentTask,
+    });
   } catch (error) {
     console.error("Update task error:", error);
 
@@ -262,8 +332,11 @@ export const deleteTask = async (req, res) => {
       });
     }
 
+    emitTaskEvent(req, "task:deleted", task);
+
     return res.status(200).json({
       message: "Task deleted successfully",
+      task,
     });
   } catch (error) {
     console.error("Delete task error:", error);
