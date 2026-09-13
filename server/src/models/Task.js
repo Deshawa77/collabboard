@@ -32,6 +32,13 @@ const taskSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Used for optimistic concurrency control.
+    // The version increases every time a task is successfully updated.
+    version: {
+      type: Number,
+      default: 0,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
